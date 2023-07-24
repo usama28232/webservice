@@ -22,7 +22,6 @@ type UserController struct {
 // Returns void
 func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	logger = helpers.GetLoggerByRequest(request)
-	defer helpers.RestoreDefaultLogger()
 	logger.Info("Inside User Controller Entrypoint")
 	logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
 	if request.URL.Path == "/users" {
