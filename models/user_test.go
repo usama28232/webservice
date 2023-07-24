@@ -14,7 +14,3 @@ func TestAddNewUser(t *testing.T) {
 		t.Logf("success: %v", got)
 	}
 }
-
-// func TestExecutionTimeSeconds(t *testing.T) {
-// 	ExecutionTimeSeconds()
-// }

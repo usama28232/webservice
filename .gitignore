@@ -21,3 +21,5 @@
 go.work
 
 coverage.out
+log.txt
+access_log.txt

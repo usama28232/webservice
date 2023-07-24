@@ -4,7 +4,6 @@ package models
 import (
 	"errors"
 	"fmt"
-	"time"
 )
 
 // User struct for holding data
@@ -54,6 +53,7 @@ func UpdateUser(user User) (User, error) {
 	for i, u := range users {
 		if user.Id == u.Id {
 			users[i] = &user
+			return *users[i], nil
 		}
 	}
 	return User{}, fmt.Errorf("user id `%v` not found", user.Id)
@@ -82,9 +82,4 @@ func RemoveUserById(id int) error {
 		}
 	}
 	return fmt.Errorf("user id `%v` not found", id)
-}
-
-// Fake delay
-func ExecutionTimeSeconds() {
-	time.Sleep(3 * time.Second)
 }
