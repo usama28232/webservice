@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"webservice/helpers"
+	"webservice/loggers"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -25,7 +25,7 @@ func RegisterControllers() http.Handler {
 
 	mux.StrictSlash(false)
 
-	accessLogger := helpers.GetAccessLogger()
+	accessLogger := loggers.GetAccessLogger()
 	return loggingMiddleware(accessLogger, mux)
 }
 
@@ -61,6 +61,9 @@ func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 				zap.String("user_agent", r.UserAgent()),
 			)
 		}
+
+		// Sets Logger against User
+		loggers.SetLoggerFromRequest(r)
 
 		// Call the next handler in the chain
 		next.ServeHTTP(w, r)

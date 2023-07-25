@@ -1,11 +1,13 @@
-package helpers
+package loggers
 
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"webservice/constants"
+	"webservice/helpers"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -15,21 +17,92 @@ var defaultLogger *zap.SugaredLogger = nil
 var accessLogger *zap.SugaredLogger = nil
 var debugLogger *zap.SugaredLogger = nil
 
+var collection = make(map[string]*zap.SugaredLogger)
+
+// SetLoggerFromRequest is used to set logging level Debug/Default
+//
+// void
+func SetLoggerFromRequest(r *http.Request) {
+	param, err := helpers.ParseDebugRequest(r)
+	if err != nil {
+		defaultLogger.Errorw("Failed to parse", "Err", err)
+	}
+	username := r.Header.Get(constants.USER_HEADER_KEY)
+	if username != "" {
+		if param.Debug {
+			defaultLogger.Infow("SetLoggerFromRequest", "Parsed", param)
+			initDebugLoggerbyUsername(username)
+		} else {
+			RemoveDebugLoggerByUsername(username)
+		}
+	}
+}
+
 // GetLoggerByRequest is used to get logger type based on incoming request
 //
 // returns Info or Debug logger
 func GetLoggerByRequest(r *http.Request) *zap.SugaredLogger {
-	param, err := ParseDebugRequest(r)
+	param, err := helpers.ParseDebugRequest(r)
 	if err != nil {
 		defaultLogger.Errorw("Failed to parse", "Err", err)
 	}
-	if param.Debug {
+	username := r.Header.Get(constants.USER_HEADER_KEY)
+	if param.Debug && username != "" {
 		defaultLogger.Infow("GettingLoggerByRequest", "Parsed", param)
-		return GetDebugLogger()
+		return GetLoggerbyUsername(username)
 	}
 	return defaultLogger
 }
 
+// RemoveLoggerByRequest is used to remove logger mapping
+//
+// void
+func RemoveLoggerByRequest(r *http.Request) {
+	param, err := helpers.ParseDebugRequest(r)
+	if err != nil {
+		defaultLogger.Errorw("Failed to parse", "Err", err)
+	}
+	username := r.Header.Get(constants.USER_HEADER_KEY)
+	if param.Debug && username != "" {
+		RemoveDebugLoggerByUsername(username)
+	}
+}
+
+func initDebugLoggerbyUsername(uname string) *zap.SugaredLogger {
+	if val, ok := collection[strings.ToLower(uname)]; ok {
+		return val
+	} else {
+		_logger := GetDebugLogger()
+		_logger.Debugw("Debug logger retrieved", "User", uname)
+		collection[strings.ToLower(uname)] = _logger
+		return _logger
+	}
+}
+
+// GetLoggerbyUsername is used to get logger based on incoming Http Header
+//
+// returns Debug logger or Default Logger
+func GetLoggerbyUsername(uname string) *zap.SugaredLogger {
+	if val, ok := collection[strings.ToLower(uname)]; ok {
+		return val
+	} else {
+		// return default logger
+		return GetLogger(constants.Info)
+	}
+}
+
+// RemoveDebugLoggerByUsername is used to release logger mapping
+//
+// void
+func RemoveDebugLoggerByUsername(uname string) {
+	if uname != "" {
+		delete(collection, strings.ToLower(uname))
+	}
+}
+
+// RestoreDefaultLogger is used to return default logger back
+//
+// Returns application default logger
 func RestoreDefaultLogger() *zap.SugaredLogger {
 	return defaultLogger
 }

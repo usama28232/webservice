@@ -5,12 +5,11 @@ import (
 	"regexp"
 	"strconv"
 	"webservice/helpers"
+	"webservice/loggers"
 	"webservice/models"
-
-	"go.uber.org/zap"
 )
 
-var logger *zap.SugaredLogger
+// var logger *zap.SugaredLogger
 
 // UserController Struct
 type UserController struct {
@@ -21,9 +20,13 @@ type UserController struct {
 //
 // Returns void
 func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	logger = helpers.GetLoggerByRequest(request)
+
+	// get Logger instance by username
+	appUser, _ := helpers.ExtractAppUser(request)
+	logger := loggers.GetLoggerbyUsername(appUser.Username)
+
 	logger.Info("Inside User Controller Entrypoint")
-	logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
+	logger.Debugw("User Controller Entrypoint", "Url", request.URL.Path, "Method", request.Method)
 	if request.URL.Path == "/users" {
 		switch request.Method {
 		case http.MethodGet:
@@ -31,7 +34,7 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 			controller.getAll(writer, request)
 		case http.MethodPost:
 			logger.Info("Add new User")
-			controller.post(writer, request)
+			controller.post(writer, request, appUser)
 		}
 	} else {
 		matches := controller.pattern.FindStringSubmatch(request.URL.Path)
@@ -47,13 +50,13 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 		switch request.Method {
 		case http.MethodGet:
 			logger.Info("Get User by Id")
-			controller.getById(id, writer)
+			controller.getById(id, writer, appUser)
 		case http.MethodPut:
 			logger.Info("Update User")
-			controller.put(id, writer, request)
+			controller.put(id, writer, request, appUser)
 		case http.MethodDelete:
 			logger.Info("Delete User")
-			controller.remove(id, writer)
+			controller.remove(id, writer, appUser)
 		default:
 			logger.Debugw("Invalid Request", "Method", request.Method)
 			writer.WriteHeader(http.StatusNotFound)
@@ -65,7 +68,8 @@ func (controller UserController) getAll(w http.ResponseWriter, r *http.Request) 
 	helpers.EncodeResponse(models.GetAllUsers(), w)
 }
 
-func (controller UserController) getById(id int, w http.ResponseWriter) {
+func (controller UserController) getById(id int, w http.ResponseWriter, appUser models.AppUser) {
+	logger := loggers.GetLoggerbyUsername(appUser.Username)
 	data, err := models.GetUserById(id)
 	if err == nil {
 		logger.Debugw("Current Users", "v", data)
@@ -78,18 +82,20 @@ func (controller UserController) getById(id int, w http.ResponseWriter) {
 
 }
 
-func (controller UserController) remove(id int, w http.ResponseWriter) {
+func (controller UserController) remove(id int, w http.ResponseWriter, appUser models.AppUser) {
+	logger := loggers.GetLoggerbyUsername(appUser.Username)
 	err := models.RemoveUserById(id)
 	if err != nil {
 		logger.Debugw("Error Removing User", "e", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 	} else {
-		logger.Debugw("Removed user", "v", id)
+		logger.Debugw("Removed user", "id", id)
 	}
 }
 
-func (controller UserController) put(id int, w http.ResponseWriter, r *http.Request) {
+func (controller UserController) put(id int, w http.ResponseWriter, r *http.Request, appUser models.AppUser) {
+	logger := loggers.GetLoggerbyUsername(appUser.Username)
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())
@@ -115,7 +121,8 @@ func (controller UserController) put(id int, w http.ResponseWriter, r *http.Requ
 
 }
 
-func (controller UserController) post(w http.ResponseWriter, r *http.Request) {
+func (controller UserController) post(w http.ResponseWriter, r *http.Request, appUser models.AppUser) {
+	logger := loggers.GetLoggerbyUsername(appUser.Username)
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())
