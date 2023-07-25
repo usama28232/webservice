@@ -149,9 +149,6 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 Now, you can easily replace the Request header by currently logged-in user
 
 
-**.....**
-
-
 # Brief Introduction on Test Coverage
 
 Test coverage measures the percentage of your code that is executed during tests.
