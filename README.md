@@ -95,7 +95,7 @@ curl --request DELETE \
 }'
 ```
 
-**Note:** To change the logging level to default (info), just remove the request body from Http Request
+**Note:** To change the logging level to default (info), just remove the `"Debug": true` from request body from Http Request
 
 
 # Working Explanation
@@ -118,16 +118,16 @@ Debug bool
 }
 ```
 
-So the usage from caller perspective will become:
+So the usage from caller perspective will be:
 
 ```
 var logger *zap.SugaredLogger = nil
 
 func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-logger = helpers.GetLoggerByRequest(request)
-logger.Info("Inside User Controller Entrypoint")
-logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
-.....
+    logger = helpers.GetLoggerByRequest(request)
+    logger.Info("Inside User Controller Entrypoint")
+    logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
+    .....
 ```
 
 
