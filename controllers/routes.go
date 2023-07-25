@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"time"
-	"webservice/helpers"
+	"webservice/loggers"
 	"webservice/models"
 
 	"github.com/gorilla/mux"
@@ -27,7 +27,7 @@ func RegisterControllers() http.Handler {
 
 	mux.StrictSlash(false)
 
-	accessLogger := helpers.GetAccessLogger()
+	accessLogger := loggers.GetAccessLogger()
 	return loggingMiddleware(accessLogger, mux)
 }
 
@@ -63,6 +63,9 @@ func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 			meta.Url = r.URL.Path
 			meta.Agent = r.UserAgent()
 		}
+
+		// Sets Logger against User
+		loggers.SetLoggerFromRequest(r)
 
 		// Call the next handler in the chain
 		next.ServeHTTP(w, r)

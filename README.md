@@ -28,12 +28,13 @@ Adds new user in application
 
 ```
 curl --request POST \
---url http://localhost:3000/users \
---header 'Content-Type: application/json' \
---data '{
-"FirstName": "John",
-"LastName": "Zick",
-"Debug": true
+  --url http://localhost:3000/users \
+  --header 'APP_USER: john' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"FirstName": "John",
+	"LastName": "Cick",
+	"Debug": true
 }'
 ```
 
@@ -44,10 +45,11 @@ Lists all users registered with application
 
 ```
 curl --request GET \
---url http://localhost:3000/users \
---header 'Content-Type: application/json' \
---data '{
-"Debug": true
+  --url http://localhost:3000/users \
+  --header 'APP_USER: john' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"Debug": true
 }'
 ```
 
@@ -58,10 +60,11 @@ Get single user by `id`
 
 ```
 curl --request GET \
---url http://localhost:3000/users/6 \
---header 'Content-Type: application/json' \
---data '{
-"Debug": true
+  --url http://localhost:3000/users/12 \
+  --header 'APP_USER: john' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"Debug": true
 }'
 ```
 
@@ -72,13 +75,14 @@ Updates existing user in application
 
 ```
 curl --request PUT \
---url http://localhost:3000/users/1 \
---header 'Content-Type: application/json' \
---data '{
-"Id": 1,
-"FirstName": "John",
-"LastName": "Wick",
-"Debug": true
+  --url http://localhost:3000/users/5 \
+  --header 'APP_USER: john' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"Id": 5,
+	"FirstName": "John",
+	"LastName": "Wick",
+	"Debug": true
 }'
 ```
 
@@ -88,10 +92,11 @@ Deletes user by Id
 
 ```
 curl --request DELETE \
---url http://localhost:3000/users/6 \
---header 'Content-Type: application/json' \
---data '{
-"Debug": true
+  --url http://localhost:3000/users/11 \
+  --header 'APP_USER: john' \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"Debug": true
 }'
 ```
 
@@ -102,7 +107,7 @@ curl --request DELETE \
 
 ## Access Logs ##
 
-To generate access-logs (can be found in project dir as **access_logs.txt**), a middleware has been added by handler-function which logs on default (info) level which is held inside helper package as **logger.go** under `accessLogger *zap.SugaredLogger`
+To generate access-logs (can be found in project dir as **access_logs.txt**), a middleware has been added by handler-function which logs on default (info) level which is held inside ~~helper~~ loggers package as **logger.go** under `accessLogger *zap.SugaredLogger`
 
 
 I have kept the middleware simple, but you can add application-level configurations to make it more efficient.
@@ -110,7 +115,17 @@ I have kept the middleware simple, but you can add application-level configurati
 
 ## Application Logs ##
 
-The application logs (can be found in project dir as **logs.txt**), I have added `defaultLogger *zap.SugaredLogger` & `debugLogger *zap.SugaredLogger`. Both are held inside helper package, callers need to ask for logger by providing `http.Request` object where it makes the decision by extracting the following information from `Request Body`:
+The application logs (can be found in project dir as **logs.txt**), I have added `defaultLogger *zap.SugaredLogger` & `debugLogger *zap.SugaredLogger`. Both are held inside ~~helper~~ loggers package. ~~callers need to ask for logger by providing `http.Request` object where it makes the decision by extracting the following information from `Request Body`:~~
+
+Now application detects ` "Debug":true ` flag and stores application log level against incoming request header `APP_USER` from request inside `var collection map[string]*zap.SugaredLogger`
+
+This way, I am able to change logging level at runtime for specific user, this kind of approach is very useful for debugging inside a high frequency system
+
+This is achieved by slightly modifying the middleware in `../controllers/routes.go > func loggingMiddleware`
+
+**Note:** Request Header is mandatory to store Log Level
+
+Following struct will be extracted from request body
 
 ```
 type Param struct {
@@ -121,20 +136,16 @@ Debug bool
 So the usage from caller perspective will be:
 
 ```
-var logger *zap.SugaredLogger = nil
-
 func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-    logger = helpers.GetLoggerByRequest(request)
-    logger.Info("Inside User Controller Entrypoint")
-    logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
-    .....
+    
+	// get Logger instance by username
+	appUser, _ := helpers.ExtractAppUser(request)
+    	logger :=     loggers.GetLoggerbyUsername(appUser.Username)
+        .....
 ```
 
 
-Right now, I am holding the logger instance on package level, ~~but I have plan to associate it with some mapping against current user to make it more consistent and support concurrency.~~
-
-See branch **[user-based-logging](https://github.com/usama28232/webservice/tree/user-based-logging)**
-
+Now, you can easily replace the Request header by currently logged-in user
 
 
 # Brief Introduction on Test Coverage

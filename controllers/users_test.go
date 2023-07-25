@@ -14,20 +14,6 @@ import (
 
 var server *httptest.Server
 
-type mockHttpRW struct {
-	bytes.Buffer
-}
-
-func (w mockHttpRW) Header() http.Header {
-	return http.Header{}
-}
-
-func (w mockHttpRW) WriteHeader(status int) {}
-
-func (w mockHttpRW) getData() []byte {
-	return w.Bytes()
-}
-
 func spinTestServer() {
 	fmt.Println("____ SERVER STARTED ____")
 	server = httptest.NewServer(http.HandlerFunc(newUserController().ServeHTTP))
@@ -42,47 +28,6 @@ func TestMain(m *testing.M) {
 	fmt.Println("Closing Server OBJ")
 	defer server.Close()
 	os.Exit(intCode)
-}
-
-func TestServeHTTP(t *testing.T) {
-
-	// .. adding user
-	body := `{
-		"FirstName": "asdzxc",
-		"LastName": "dfgdfg"
-	}`
-	bufferBody := bytes.NewBuffer([]byte(body))
-
-	fakePostRequest, reqPostErr := http.NewRequest(http.MethodPost, "/users", bufferBody)
-	if reqPostErr != nil {
-		t.Fatal(reqPostErr)
-	} else {
-		mockPostrw := mockHttpRW{}
-		UserController.ServeHTTP(*newUserController(), &mockPostrw, fakePostRequest)
-		if len(mockPostrw.getData()) > 0 {
-			t.Log("Post Success")
-			fmt.Printf("post output: %v", string(mockPostrw.getData()))
-
-			// .. getting newly created user
-			fakeGetRequest, reqGetErr := http.NewRequest(http.MethodGet, "/users/1", nil)
-			if reqGetErr != nil {
-				t.Fatal(reqGetErr)
-			} else {
-				mockGetrw := mockHttpRW{}
-				UserController.ServeHTTP(*newUserController(), &mockGetrw, fakeGetRequest)
-				if len(mockGetrw.getData()) > 0 {
-					t.Log("success")
-				} else {
-					t.Fatal("Could not simulate get request")
-				}
-				fmt.Printf("get output: %v", string(mockGetrw.getData()))
-			}
-
-		} else {
-			t.Fatal("Could not simulate post request")
-		}
-	}
-
 }
 
 func TestHttptestServer(t *testing.T) {

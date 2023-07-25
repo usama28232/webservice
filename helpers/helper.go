@@ -4,8 +4,10 @@ package helpers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
+	"webservice/constants"
 	"webservice/models"
 )
 
@@ -49,4 +51,18 @@ func EncodeResponse(data interface{}, w io.Writer) error {
 	} else {
 		return err
 	}
+}
+
+// Extracts Username from Request Header
+//
+// Returns AppUser
+func ExtractAppUser(r *http.Request) (models.AppUser, error) {
+	username := r.Header.Get(constants.USER_HEADER_KEY)
+	u := models.AppUser{}
+	if username == "" {
+		return u, errors.New("could not extract '" + constants.USER_HEADER_KEY + "' from request header")
+	} else {
+		u.Username = username
+	}
+	return u, nil
 }
