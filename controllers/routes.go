@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"time"
 	"webservice/helpers"
+	"webservice/models"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -32,6 +34,10 @@ func RegisterControllers() http.Handler {
 // loggingMiddleware is a middleware that logs incoming HTTP requests
 func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+
+		meta := models.HttpRequest{}
+
 		// Log the request using the Zap logger
 		if r.Method == http.MethodPost || r.Method == http.MethodPut {
 			body, err := io.ReadAll(r.Body)
@@ -45,24 +51,23 @@ func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 				strBody = string(body)
 			}
 
-			log.Infow("HttpRequest",
-				zap.String("method", r.Method),
-				zap.String("url", r.URL.Path),
-				zap.String("data", strBody),
-				zap.String("user_agent", r.UserAgent()),
-			)
+			meta.Method = r.Method
+			meta.Url = r.URL.Path
+			meta.Data = strBody
+			meta.Agent = r.UserAgent()
 
 			// Reset the request body so it can be read again by the actual handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
 		} else {
-			log.Infow("HttpRequest",
-				zap.String("method", r.Method),
-				zap.String("url", r.URL.Path),
-				zap.String("user_agent", r.UserAgent()),
-			)
+			meta.Method = r.Method
+			meta.Url = r.URL.Path
+			meta.Agent = r.UserAgent()
 		}
 
 		// Call the next handler in the chain
 		next.ServeHTTP(w, r)
+		meta.Duration = time.Since(startTime).Milliseconds()
+
+		log.Infow("http", zap.Any("v", meta))
 	})
 }
