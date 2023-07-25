@@ -131,10 +131,10 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 ```
 
 
-Right now, I am holding the logger instance on package level, but I have plan to associate it with some mapping against current user to make it more consistent and support concurrency.
+Right now, I am holding the logger instance on package level, ~~but I have plan to associate it with some mapping against current user to make it more consistent and support concurrency.~~
 
+See branch **[user-based-logging](https://github.com/usama28232/webservice/tree/user-based-logging)**
 
-**.....**
 
 
 # Brief Introduction on Test Coverage
