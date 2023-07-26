@@ -23,7 +23,7 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 
 	// get Logger instance by username
 	appUser, _ := helpers.ExtractAppUser(request)
-	logger := loggers.GetLoggerbyUsername(appUser.Username)
+	logger := loggers.GetLoggerByConfigFile()
 
 	logger.Info("Inside User Controller Entrypoint")
 	logger.Debugw("User Controller Entrypoint", "Url", request.URL.Path, "Method", request.Method)
@@ -69,7 +69,7 @@ func (controller UserController) getAll(w http.ResponseWriter, r *http.Request) 
 }
 
 func (controller UserController) getById(id int, w http.ResponseWriter, appUser models.AppUser) {
-	logger := loggers.GetLoggerbyUsername(appUser.Username)
+	logger := loggers.GetLoggerByConfigFile()
 	data, err := models.GetUserById(id)
 	if err == nil {
 		logger.Debugw("Current Users", "v", data)
@@ -83,7 +83,7 @@ func (controller UserController) getById(id int, w http.ResponseWriter, appUser 
 }
 
 func (controller UserController) remove(id int, w http.ResponseWriter, appUser models.AppUser) {
-	logger := loggers.GetLoggerbyUsername(appUser.Username)
+	logger := loggers.GetLoggerByConfigFile()
 	err := models.RemoveUserById(id)
 	if err != nil {
 		logger.Debugw("Error Removing User", "e", err.Error())
@@ -95,7 +95,7 @@ func (controller UserController) remove(id int, w http.ResponseWriter, appUser m
 }
 
 func (controller UserController) put(id int, w http.ResponseWriter, r *http.Request, appUser models.AppUser) {
-	logger := loggers.GetLoggerbyUsername(appUser.Username)
+	logger := loggers.GetLoggerByConfigFile()
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())
@@ -122,7 +122,7 @@ func (controller UserController) put(id int, w http.ResponseWriter, r *http.Requ
 }
 
 func (controller UserController) post(w http.ResponseWriter, r *http.Request, appUser models.AppUser) {
-	logger := loggers.GetLoggerbyUsername(appUser.Username)
+	logger := loggers.GetLoggerByConfigFile()
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())

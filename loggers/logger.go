@@ -1,13 +1,13 @@
 package loggers
 
 import (
-	"net/http"
+	"encoding/json"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	"webservice/constants"
-	"webservice/helpers"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -17,87 +17,24 @@ var defaultLogger *zap.SugaredLogger = nil
 var accessLogger *zap.SugaredLogger = nil
 var debugLogger *zap.SugaredLogger = nil
 
-var collection = make(map[string]*zap.SugaredLogger)
-
-// SetLoggerFromRequest is used to set logging level Debug/Default
-//
-// void
-func SetLoggerFromRequest(r *http.Request) {
-	param, err := helpers.ParseDebugRequest(r)
-	if err != nil {
-		defaultLogger.Errorw("Failed to parse", "Err", err)
-	}
-	username := r.Header.Get(constants.USER_HEADER_KEY)
-	if username != "" {
-		if param.Debug {
-			defaultLogger.Infow("SetLoggerFromRequest", "Parsed", param)
-			initDebugLoggerbyUsername(username)
-		} else {
-			RemoveDebugLoggerByUsername(username)
-		}
-	}
-}
-
-// GetLoggerByRequest is used to get logger type based on incoming request
+// GetLoggerByConfigFile is used to get logger type based on config file: helpers.config.json
 //
 // returns Info or Debug logger
-func GetLoggerByRequest(r *http.Request) *zap.SugaredLogger {
-	param, err := helpers.ParseDebugRequest(r)
-	if err != nil {
-		defaultLogger.Errorw("Failed to parse", "Err", err)
+func GetLoggerByConfigFile() *zap.SugaredLogger {
+	pc, _, _, ok := runtime.Caller(1)
+	if !ok {
+		return defaultLogger
 	}
-	username := r.Header.Get(constants.USER_HEADER_KEY)
-	if param.Debug && username != "" {
-		defaultLogger.Infow("GettingLoggerByRequest", "Parsed", param)
-		return GetLoggerbyUsername(username)
-	}
-	return defaultLogger
-}
 
-// RemoveLoggerByRequest is used to remove logger mapping
-//
-// void
-func RemoveLoggerByRequest(r *http.Request) {
-	param, err := helpers.ParseDebugRequest(r)
-	if err != nil {
-		defaultLogger.Errorw("Failed to parse", "Err", err)
+	callerFunc := runtime.FuncForPC(pc)
+	if callerFunc == nil {
+		return defaultLogger
 	}
-	username := r.Header.Get(constants.USER_HEADER_KEY)
-	if param.Debug && username != "" {
-		RemoveDebugLoggerByUsername(username)
-	}
-}
 
-func initDebugLoggerbyUsername(uname string) *zap.SugaredLogger {
-	if val, ok := collection[strings.ToLower(uname)]; ok {
-		return val
-	} else {
-		_logger := GetDebugLogger()
-		_logger.Debugw("Debug logger retrieved", "User", uname)
-		collection[strings.ToLower(uname)] = _logger
-		return _logger
-	}
-}
+	// ....
+	_logger := getLoggerFromConfig(callerFunc.Name())
 
-// GetLoggerbyUsername is used to get logger based on incoming Http Header
-//
-// returns Debug logger or Default Logger
-func GetLoggerbyUsername(uname string) *zap.SugaredLogger {
-	if val, ok := collection[strings.ToLower(uname)]; ok {
-		return val
-	} else {
-		// return default logger
-		return GetLogger(constants.Info)
-	}
-}
-
-// RemoveDebugLoggerByUsername is used to release logger mapping
-//
-// void
-func RemoveDebugLoggerByUsername(uname string) {
-	if uname != "" {
-		delete(collection, strings.ToLower(uname))
-	}
+	return _logger
 }
 
 // RestoreDefaultLogger is used to return default logger back
@@ -132,6 +69,53 @@ func GetDebugLogger() *zap.SugaredLogger {
 		debugLogger = getLogger(constants.LogLevel(constants.Debug), constants.LOG_FILE)
 	}
 	return debugLogger
+}
+
+func getLoggerFromConfig(callerName string) *zap.SugaredLogger {
+
+	file, err := os.ReadFile(constants.DEBUG_CONFIG)
+	if err != nil {
+		defaultLogger.Infow("Error reading config file:", err)
+		return defaultLogger
+	}
+
+	// Unmarshal the JSON data into the Config struct
+	var config LoggerConfig
+	if errC := json.Unmarshal(file, &config); errC != nil {
+		defaultLogger.Infow("Error reading config file:", errC)
+		os.Exit(1)
+	}
+
+	lastIndexGroup := strings.LastIndex(callerName, constants.CALLER_DELIM_1)
+
+	if lastIndexGroup >= 0 {
+		groupVal := callerName[lastIndexGroup+len(constants.CALLER_DELIM_1):]
+		infoGrp := strings.Split(groupVal, constants.CALLER_DELIM_2)
+
+		if len(infoGrp) >= 0 {
+			value := infoGrp[0]
+
+			if level, ok := config.LogConfig[value]; ok {
+				logLevel := constants.GetLogLevelFromString(strings.ToLower(level))
+				switch logLevel {
+				case constants.Debug:
+					return GetDebugLogger()
+				default:
+					return defaultLogger
+				}
+			} else {
+				defaultLogger.Infow("Cannot find logger mapping", "v", config)
+			}
+
+		} else {
+			defaultLogger.Infow("Delimeter not found ", "v:", groupVal)
+		}
+
+	} else {
+		defaultLogger.Infow("Delimeter not found ", "v:", callerName)
+	}
+
+	return defaultLogger
 }
 
 func getLogger(level constants.LogLevel, filename string) *zap.SugaredLogger {

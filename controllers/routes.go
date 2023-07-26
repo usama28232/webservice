@@ -64,9 +64,6 @@ func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 			meta.Agent = r.UserAgent()
 		}
 
-		// Sets Logger against User
-		loggers.SetLoggerFromRequest(r)
-
 		// Call the next handler in the chain
 		next.ServeHTTP(w, r)
 		meta.Duration = time.Since(startTime).Milliseconds()

@@ -4,7 +4,7 @@ Go Minimal Webservice Example with Http Request Logging (like tomcat access-log)
 
 ## Introduction
 
-This is a minimal project replicating Rest APIs with Http Request Logging (like tomcat access-log) & Request based logging levels, Test cases and coverage reports.
+This is a minimal project replicating Rest APIs with Http Request Logging (like tomcat access-log) & ~~Request~~ Package based logging levels, Test cases and coverage reports.
 
 Currently using Mux & Regex for routing and using in-memory storage
 
@@ -117,35 +117,22 @@ I have kept the middleware simple, but you can add application-level configurati
 
 The application logs (can be found in project dir as **logs.txt**), I have added `defaultLogger *zap.SugaredLogger` & `debugLogger *zap.SugaredLogger`. Both are held inside ~~helper~~ loggers package. ~~callers need to ask for logger by providing `http.Request` object where it makes the decision by extracting the following information from `Request Body`:~~
 
-Now application detects ` "Debug":true ` flag and stores application log level against incoming request header `APP_USER` from request inside `var collection map[string]*zap.SugaredLogger`
+Now application looks for `config.json` file (which has json configuration for package name and logging level), using `callerFunc.Name()` from `runtime` library, it extracts package name and determines the logging level
 
-This way, I am able to change logging level at runtime for specific user, this kind of approach is very useful for debugging inside a high frequency system
+This way, I am able to change logging level at runtime for specific package, this kind of approach is very useful for debugging inside a high frequency system and callers do not have to pass anything to get logging instance
 
-This is achieved by slightly modifying the middleware in `../controllers/routes.go > func loggingMiddleware`
 
-**Note:** Request Header is mandatory to store Log Level
+Offcourse this method will modify logging for all users, but the output will be limited to specific package
 
-Following struct will be extracted from request body
-
-```
-type Param struct {
-Debug bool
-}
-```
 
 So the usage from caller perspective will be:
 
+
 ```
 func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-    
-	// get Logger instance by username
-	appUser, _ := helpers.ExtractAppUser(request)
-    	logger :=     loggers.GetLoggerbyUsername(appUser.Username)
-        .....
+	logger := loggers.GetLoggerByConfigFile()
+  .....
 ```
-
-
-Now, you can easily replace the Request header by currently logged-in user
 
 
 # Brief Introduction on Test Coverage

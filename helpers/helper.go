@@ -2,7 +2,6 @@
 package helpers
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -23,21 +22,6 @@ func ParseRequest(r *http.Request) (models.User, error) {
 	} else {
 		return u, err
 	}
-}
-
-// ParseDebugRequest decodes incoming request and extracts Debug Param
-//
-// Returns Config Struct
-func ParseDebugRequest(r *http.Request) (models.Param, error) {
-	body, err := io.ReadAll(r.Body)
-	p := models.Param{}
-	p.Debug = false
-	if err == nil && len(body) > 0 {
-		json.Unmarshal(body, &p)
-		r.Body = io.NopCloser(bytes.NewBuffer(body))
-		return p, nil
-	}
-	return p, nil
 }
 
 // Encode incoming data model
