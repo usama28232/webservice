@@ -34,19 +34,19 @@ func RestoreDefaultLogger() *zap.SugaredLogger {
 	return defaultLogger
 }
 
-// Gets Zap Logger with specified level
+// Gets Zap Default Logger
 //
-// returns new SugaredLogger instance
-func GetLogger(level constants.LogLevel) *zap.SugaredLogger {
+// returns a SugaredLogger instance
+func GetDefaultLogger() *zap.SugaredLogger {
 	if defaultLogger == nil {
-		defaultLogger = getLogger(level, constants.LOG_FILE)
+		defaultLogger = getLogger(constants.LogLevel(constants.Info), constants.LOG_FILE)
 	}
 	return defaultLogger
 }
 
 // Gets Zap Logger for HTTP Requests
 //
-// returns new SugaredLogger instance
+// returns a SugaredLogger instance
 func GetAccessLogger() *zap.SugaredLogger {
 	if accessLogger == nil {
 		accessLogger = getLogger(constants.LogLevel(constants.Info), constants.ACCES_LOG_FILE)
@@ -54,6 +54,9 @@ func GetAccessLogger() *zap.SugaredLogger {
 	return accessLogger
 }
 
+// Gets Zap Debug Logger
+//
+// returns a SugaredLogger instance
 func GetDebugLogger() *zap.SugaredLogger {
 	if debugLogger == nil {
 		debugLogger = getLogger(constants.LogLevel(constants.Debug), constants.LOG_FILE)
@@ -61,6 +64,9 @@ func GetDebugLogger() *zap.SugaredLogger {
 	return debugLogger
 }
 
+// Gets Zap logger with specified instance
+//
+// returns a SugaredLogger instance
 func getLogger(level constants.LogLevel, filename string) *zap.SugaredLogger {
 	// Configure logger options
 	var l zapcore.Level

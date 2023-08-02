@@ -20,7 +20,7 @@ type UserController struct {
 // Landing point for Http requests to /users
 //
 // Returns void
-func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (controller UserController) ServeHTTP(writer *CustomRespWriter, request *http.Request) {
 	logger = helpers.GetLoggerByRequest(request)
 	logger.Info("Inside User Controller Entrypoint")
 	logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
@@ -47,7 +47,7 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 		switch request.Method {
 		case http.MethodGet:
 			logger.Info("Get User by Id")
-			controller.getById(id, writer)
+			controller.getById(id, writer, request)
 		case http.MethodPut:
 			logger.Info("Update User")
 			controller.put(id, writer, request)
@@ -61,24 +61,24 @@ func (controller UserController) ServeHTTP(writer http.ResponseWriter, request *
 	}
 }
 
-func (controller UserController) getAll(w http.ResponseWriter, r *http.Request) {
-	helpers.EncodeResponse(models.GetAllUsers(), w)
+func (controller UserController) getAll(w *CustomRespWriter, r *http.Request) {
+	helpers.EncodeResponse(models.GetAllUsers(), w.ResponseWriter)
 }
 
-func (controller UserController) getById(id int, w http.ResponseWriter) {
+func (controller UserController) getById(id int, w *CustomRespWriter, r *http.Request) {
 	data, err := models.GetUserById(id)
 	if err == nil {
 		logger.Debugw("Current Users", "v", data)
-		helpers.EncodeResponse(data, w)
+		w.WriteTrxid(data.Id)
+		helpers.EncodeResponse(data, w.ResponseWriter)
 	} else {
 		logger.Debugw("Error getting all users", "e", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 	}
-
 }
 
-func (controller UserController) remove(id int, w http.ResponseWriter) {
+func (controller UserController) remove(id int, w *CustomRespWriter) {
 	err := models.RemoveUserById(id)
 	if err != nil {
 		logger.Debugw("Error Removing User", "e", err.Error())
@@ -89,7 +89,7 @@ func (controller UserController) remove(id int, w http.ResponseWriter) {
 	}
 }
 
-func (controller UserController) put(id int, w http.ResponseWriter, r *http.Request) {
+func (controller UserController) put(id int, w *CustomRespWriter, r *http.Request) {
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())
@@ -102,20 +102,21 @@ func (controller UserController) put(id int, w http.ResponseWriter, r *http.Requ
 			w.Write([]byte("Id mismatch"))
 		} else {
 			nuser, nerr := models.UpdateUser(user)
+			w.WriteTrxid(id)
 			if nerr != nil {
 				logger.Debugw("Error updating user", "e", nerr.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(nerr.Error()))
 			} else {
 				logger.Debugw("Updated User", "v", nuser)
-				helpers.EncodeResponse(nuser, w)
+				helpers.EncodeResponse(nuser, w.ResponseWriter)
 			}
 		}
 	}
 
 }
 
-func (controller UserController) post(w http.ResponseWriter, r *http.Request) {
+func (controller UserController) post(w *CustomRespWriter, r *http.Request) {
 	user, err := helpers.ParseRequest(r)
 	if err != nil {
 		logger.Debugw("Parsing Error", "e", err.Error())
@@ -123,6 +124,7 @@ func (controller UserController) post(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 	} else {
 		nuser, nerr := models.AddNewUser(user)
+		w.WriteTrxid(nuser.Id)
 
 		if nerr != nil {
 			logger.Debugw("Error adding user", "e", err.Error())
@@ -130,7 +132,7 @@ func (controller UserController) post(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(err.Error()))
 		} else {
 			logger.Debugw("Added new user", "v", nuser)
-			helpers.EncodeResponse(nuser, w)
+			helpers.EncodeResponse(nuser, w.ResponseWriter)
 		}
 	}
 

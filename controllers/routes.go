@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
+	"webservice/constants"
 	"webservice/helpers"
 	"webservice/models"
 
@@ -12,33 +14,58 @@ import (
 	"go.uber.org/zap"
 )
 
+type ControllerBase interface {
+	ServeHTTP(*CustomRespWriter, *http.Request)
+}
+
+// add other fields to capture here
+type CustomRespWriter struct {
+	http.ResponseWriter
+	txid   string
+	status int
+}
+
+func (c *CustomRespWriter) WriteHeader(code int) {
+	c.status = code
+	c.ResponseWriter.WriteHeader(code)
+}
+
+func (c *CustomRespWriter) WriteTrxid(value int) {
+	c.txid = strconv.Itoa(value)
+}
+
+func (c *CustomRespWriter) WriteTrxidString(value string) {
+	c.txid = value
+}
+
+func (c *CustomRespWriter) GetTrxid() string {
+	return c.txid
+}
+
 // RegisterControllers contain other available endpoints
-func RegisterControllers() http.Handler {
-	userCont := newUserController()
-
+func RegisterControllers() *mux.Router {
 	mux := mux.NewRouter()
-
 	// index page
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/", fs)
 
-	mux.HandleFunc("/users", userCont.ServeHTTP).Methods(http.MethodGet, http.MethodPost)
-	mux.HandleFunc("/users/{id:[0-9]+}", userCont.ServeHTTP).Methods(http.MethodGet, http.MethodPut, http.MethodDelete)
+	userController := newUserController()
+	helloController := newHelloController()
+
+	mux.HandleFunc("/users", middleware(userController)).Methods(http.MethodGet, http.MethodPost)
+	mux.HandleFunc("/helloworld", middleware(helloController)).Methods(http.MethodGet, http.MethodPost)
+	mux.HandleFunc("/users/{id:[0-9]+}", middleware(userController)).Methods(http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	mux.StrictSlash(false)
-
-	accessLogger := helpers.GetAccessLogger()
-	return loggingMiddleware(accessLogger, mux)
+	return mux
 }
 
-// loggingMiddleware is a middleware that logs incoming HTTP requests
-func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
+func middleware(controller ControllerBase) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 
 		meta := models.HttpRequest{}
 
-		// Log the request using the Zap logger
 		if r.Method == http.MethodPost || r.Method == http.MethodPut {
 			body, err := io.ReadAll(r.Body)
 			var strBody string
@@ -64,10 +91,25 @@ func loggingMiddleware(log *zap.SugaredLogger, next http.Handler) http.Handler {
 			meta.Agent = r.UserAgent()
 		}
 
-		// Call the next handler in the chain
-		next.ServeHTTP(w, r)
-		meta.Duration = time.Since(startTime).Milliseconds()
+		cw := &CustomRespWriter{
+			ResponseWriter: w,
+			status:         http.StatusOK,
+		}
+		controller.ServeHTTP(cw, r)
 
-		log.Infow("http", zap.Any("v", meta))
+		cookie, err := r.Cookie(constants.SESSION_ID)
+		if err == nil {
+			meta.SessionId = cookie.Value
+		}
+
+		meta.Duration = time.Since(startTime).Milliseconds()
+		meta.Status = cw.status
+		if len(cw.GetTrxid()) > 0 {
+			meta.Trxid = cw.GetTrxid()
+		}
+
+		accessLogger := helpers.GetAccessLogger()
+		accessLogger.Infow("http", zap.Any("v", meta))
 	})
+
 }

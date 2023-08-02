@@ -5,9 +5,12 @@ type Param struct {
 }
 
 type HttpRequest struct {
-	Method   string
-	Url      string
-	Data     string
-	Agent    string
-	Duration int64
+	Trxid     string
+	SessionId string
+	Method    string
+	Url       string
+	Data      string
+	Agent     string
+	Duration  int64
+	Status    int
 }

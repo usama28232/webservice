@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"net/http"
-	"webservice/constants"
 	"webservice/controllers"
 	"webservice/helpers"
 )
@@ -15,7 +14,7 @@ import (
 //
 // You can change web port by specifying -port flag at runtime.
 func main() {
-	logger := helpers.GetLogger(constants.Info)
+	logger := helpers.GetDefaultLogger()
 
 	var port string
 	flag.StringVar(&port, "port", "3000", "Specifies Webservice Port")
