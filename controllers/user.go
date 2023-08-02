@@ -86,6 +86,7 @@ func (controller UserController) remove(id int, w *CustomRespWriter) {
 		w.Write([]byte(err.Error()))
 	} else {
 		logger.Debugw("Removed user", "v", id)
+		w.WriteTrxid(id)
 	}
 }
 
