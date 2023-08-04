@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"webservice/helpers"
+	"webservice/loggers"
 	"webservice/models"
 
 	"go.uber.org/zap"
@@ -21,7 +22,7 @@ type UserController struct {
 //
 // Returns void
 func (controller UserController) ServeHTTP(writer *CustomRespWriter, request *http.Request) {
-	logger = helpers.GetLoggerByRequest(request)
+	logger = loggers.GetLoggerByRequest(request)
 	logger.Info("Inside User Controller Entrypoint")
 	logger.Debugw("User Controller Entrypoint", "URL.PATH", request.URL.Path, "Method", request.Method)
 	if request.URL.Path == "/users" {

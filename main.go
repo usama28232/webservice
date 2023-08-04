@@ -7,14 +7,14 @@ import (
 	"flag"
 	"net/http"
 	"webservice/controllers"
-	"webservice/helpers"
+	"webservice/loggers"
 )
 
 // This is the entry point for application.
 //
 // You can change web port by specifying -port flag at runtime.
 func main() {
-	logger := helpers.GetDefaultLogger()
+	logger := loggers.GetDefaultLogger()
 
 	var port string
 	flag.StringVar(&port, "port", "3000", "Specifies Webservice Port")

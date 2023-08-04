@@ -1,4 +1,4 @@
-package helpers
+package loggers
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"webservice/constants"
+	"webservice/helpers"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -19,7 +20,7 @@ var debugLogger *zap.SugaredLogger = nil
 //
 // returns Info or Debug logger
 func GetLoggerByRequest(r *http.Request) *zap.SugaredLogger {
-	param, err := ParseDebugRequest(r)
+	param, err := helpers.ParseDebugRequest(r)
 	if err != nil {
 		defaultLogger.Errorw("Failed to parse", "Err", err)
 	}

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 	"webservice/constants"
-	"webservice/helpers"
+	"webservice/loggers"
 	"webservice/models"
 
 	"github.com/gorilla/mux"
@@ -108,7 +108,7 @@ func middleware(controller ControllerBase) http.HandlerFunc {
 			meta.Trxid = cw.GetTrxid()
 		}
 
-		accessLogger := helpers.GetAccessLogger()
+		accessLogger := loggers.GetAccessLogger()
 		accessLogger.Infow("http", zap.Any("v", meta))
 	})
 

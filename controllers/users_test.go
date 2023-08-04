@@ -9,7 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"webservice/helpers"
+	"webservice/loggers"
 	"webservice/models"
 )
 
@@ -38,7 +38,7 @@ func TestHttptestServer(t *testing.T) {
 	defer server.Close()
 
 	// init logger explicitly
-	helpers.GetDefaultLogger()
+	loggers.GetDefaultLogger()
 
 	fmt.Println("TestHttptestServer Exec")
 	client := server.Client()
